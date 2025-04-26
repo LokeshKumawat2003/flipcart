@@ -1,0 +1,127 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap");
+
+:root {
+  --flipkart-blue: #2874f0;
+  --flipkart-yellow: #ffc200;
+  --flipkart-green: #388e3c;
+  --flipkart-orange: #ff9f00;
+  --flipkart-red: #ff6161;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Roboto", sans-serif;
+}
+
+body {
+  background-color: #f1f3f6;
+}
+
+.flipkart-blue {
+  color: var(--flipkart-blue);
+}
+
+.bg-flipkart-blue {
+  background-color: var(--flipkart-blue);
+}
+
+.flipkart-yellow {
+  color: var(--flipkart-yellow);
+}
+
+.bg-flipkart-yellow {
+  background-color: var(--flipkart-yellow);
+}
+
+.flipkart-green {
+  color: var(--flipkart-green);
+}
+
+.bg-flipkart-green {
+  background-color: var(--flipkart-green);
+}
+
+.flipkart-orange {
+  color: var(--flipkart-orange);
+}
+
+.bg-flipkart-orange {
+  background-color: var(--flipkart-orange);
+}
+
+.flipkart-red {
+  color: var(--flipkart-red);
+}
+
+.bg-flipkart-red {
+  background-color: var(--flipkart-red);
+}
+
+.product-card-shadow {
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.3s ease;
+}
+
+.product-card-shadow:hover {
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.12);
+}
+
+.category-card {
+  transition: transform 0.3s ease;
+}
+
+.category-card:hover {
+  transform: translateY(-4px);
+}
+
+.banner-slide {
+  transition: transform 0.5s ease;
+}
+
+.banner-slide:hover {
+  transform: scale(1.01);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Mobile menu animation */
+.mobile-menu-enter {
+  opacity: 0;
+  transform: translateX(-100%);
+}
+
+.mobile-menu-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.mobile-menu-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.mobile-menu-exit-active {
+  opacity: 0;
+  transform: translateX(-100%);
+  transition: opacity 300ms, transform 300ms;
+}
