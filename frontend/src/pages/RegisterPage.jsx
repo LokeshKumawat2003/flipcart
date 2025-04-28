@@ -1,4 +1,4 @@
-
+"use client"
 
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
@@ -68,7 +68,7 @@ const RegisterPage = () => {
       }, 2000)
     } catch (error) {
       setError("Failed to create an account. " + error.message)
-      console.error("Registration error:", error)
+      // console.error("Registration error:", error)
     } finally {
       setLoading(false)
     }

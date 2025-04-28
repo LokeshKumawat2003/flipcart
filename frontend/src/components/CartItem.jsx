@@ -1,4 +1,4 @@
-
+"use client"
 
 import { useState } from "react"
 import { Link } from "react-router-dom"
@@ -29,7 +29,7 @@ const CartItem = ({ item }) => {
       <div className="flex-shrink-0 w-24 h-24 sm:mr-6">
         <Link to={`/products/${item.id}`}>
           <img
-            src={item.image || "https://via.placeholder.com/100"}
+            src={item.image || "https://placehold.co/100x100/ffffff/000000"}
             alt={item.name}
             className="w-full h-full object-contain"
           />

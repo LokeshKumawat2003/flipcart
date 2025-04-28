@@ -1,4 +1,4 @@
-
+"use client"
 
 import { useState } from "react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
@@ -31,6 +31,7 @@ const LoginPage = () => {
       setLoading(true)
       await login(email, password)
       navigate(from, { replace: true })
+      // console.log("login")
     } catch (error) {
       setError("Failed to log in. Please check your credentials.")
       console.error("Login error:", error)

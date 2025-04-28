@@ -1,4 +1,4 @@
-
+"use client"
 
 import { useState } from "react"
 import { Link } from "react-router-dom"
@@ -91,11 +91,13 @@ const WishlistPage = () => {
 
                 <Link to={`/products/${product.id}`} className="block">
                   <div className="relative pt-[100%] overflow-hidden">
-                    <img
-                      src={product.image || "https://via.placeholder.com/200"}
-                      alt={product.name}
-                      className="absolute top-0 left-0 w-full h-full object-contain p-4"
-                    />
+                    <div className="w-24 h-24">
+                      <img
+                        src={product.image || "https://placehold.co/200x200/ffffff/000000"}
+                        alt={product.name}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
                     {product.discount > 0 && (
                       <div className="absolute bottom-0 left-0 bg-[#388e3c] text-white text-xs px-2 py-0.5">
                         {product.discount}% off

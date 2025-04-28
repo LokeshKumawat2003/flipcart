@@ -5,9 +5,10 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: API_URL,
-  withCredentials: true,
+  withCredentials: false,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
 });
 
@@ -27,6 +28,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    console.error('API Error:', error.message);
+    
     // Handle 401 Unauthorized errors (token expired, etc.)
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token');
@@ -36,6 +39,7 @@ api.interceptors.response.use(
         window.location.href = '/login';
       }
     }
+    
     return Promise.reject(error);
   }
 );
@@ -87,4 +91,4 @@ export const userService = {
   deleteUser: (id) => api.delete(`/users/${id}`),
 };
 
-export default api;
+export default api; 

@@ -1,86 +1,137 @@
-import { createContext, useState, useContext, useEffect } from "react"
+"use client"
 
-const AuthContext = createContext()
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import { authService } from '../services/apiService';
 
-export const useAuth = () => useContext(AuthContext)
+// Create context
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  // Load user from localStorage on component mount
   useEffect(() => {
-    const storedUser = localStorage.getItem("user")
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser))
+    const loadUser = async () => {
+      if (token) {
+        try {
+          const response = await authService.getProfile();
+          setUser(response.data.data);
+        } catch (err) {
+          console.error('Failed to load user:', err);
+          // Clear invalid token
+          logout();
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+
+    loadUser();
+  }, [token]);
+
+  // Register user
+  const register = async (name, email, password) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const userData = { name, email, password };
+      const response = await authService.register(userData);
+      const { token, user } = response.data;
+      
+      localStorage.setItem('token', token);
+      setToken(token);
+      setUser(user);
+      return user;
+    } catch (err) {
+      setError(err.response?.data?.message || 'Registration failed');
+      throw err;
+    } finally {
+      setLoading(false);
     }
-    setLoading(false)
-  }, [])
+  };
 
-  const login = (email, password) => {
-    // In a real app, you would validate credentials against a backend
-    // This is a simplified example with mock users
-    const mockUsers = [
-      {
-        id: "1",
-        name: "Demo User",
-        email: "user@example.com",
-        password: "password123",
-        role: "user",
-      },
-      {
-        id: "2",
-        name: "Admin User",
-        email: "admin@example.com",
-        password: "admin123",
-        role: "admin",
-      },
-      {
-        id: "3",
-        name: "Manager User",
-        email: "manager@example.com",
-        password: "manager123",
-        role: "manager",
-      },
-    ]
-
-    const user = mockUsers.find((u) => u.email === email && u.password === password)
-
-    if (user) {
-      const { password, ...userWithoutPassword } = user
-      setCurrentUser(userWithoutPassword)
-      localStorage.setItem("user", JSON.stringify(userWithoutPassword))
-      return Promise.resolve(userWithoutPassword)
-    } else {
-      return Promise.reject(new Error("Invalid email or password"))
+  // Login user
+  const login = async (email, password) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const credentials = { email, password };
+      const response = await authService.login(credentials);
+      const { token, user } = response.data;
+   
+      localStorage.setItem('token', token);
+      setToken(token);
+      setUser(user);
+      return user;
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed');
+      throw err;
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  const register = (name, email, password) => {
-    // In a real app, you would send this data to your backend
-    const newUser = {
-      id: Date.now().toString(),
-      name,
-      email,
-      role: "user",
-    }
-
-    setCurrentUser(newUser)
-    localStorage.setItem("user", JSON.stringify(newUser))
-    return Promise.resolve(newUser)
-  }
-
+  // Logout user
   const logout = () => {
-    setCurrentUser(null)
-    localStorage.removeItem("user")
-  }
+    localStorage.removeItem('token');
+    setToken(null);
+    setUser(null);
+  };
 
-  const value = {
-    currentUser,
-    login,
-    register,
-    logout,
-    loading,
-  }
+  // Update user profile
+  const updateProfile = async (userData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await authService.updateProfile(userData);
+      setUser(response.data.data);
+      console.log(response.data.data,"userdata")
+      return response.data.data;
+    } catch (err) {
+      setError(err.response?.data?.message || 'Profile update failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
+  // Check if user is admin
+  const isAdmin = () => {
+    return user && user.role === 'admin';
+  };
+
+  // Check if user is authenticated
+  const isAuthenticated = () => {
+    return !!token && !!user;
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        error,
+        register,
+        login,
+        logout,
+        updateProfile,
+        isAdmin,
+        isAuthenticated,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+// Custom hook to use auth context
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
+
+export default AuthContext;

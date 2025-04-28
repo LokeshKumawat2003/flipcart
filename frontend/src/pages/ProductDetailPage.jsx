@@ -1,15 +1,36 @@
-
+"use client"
 
 import { useState, useEffect } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { useCart } from "../contexts/CartContext"
-import { fetchProductById, fetchRelatedProducts } from "../services/api"
+import { useWishlist } from "../contexts/WishlistContext"
+import { productService } from "../services/apiService"
 import ProductCard from "../components/ProductCard"
-import { Star, Truck, Heart, ThumbsUp, ThumbsDown, ChevronRight, ChevronDown, ChevronUp } from "lucide-react"
+import {
+  Star,
+  Truck,
+  Heart,
+  ThumbsUp,
+  ThumbsDown,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  Shield,
+  Package,
+  RefreshCw,
+  ShoppingCart,
+  Plus,
+  Minus,
+  Share2,
+  RotateCw,
+} from "lucide-react"
+import { Tab } from "@headlessui/react"
 
 const ProductDetailPage = () => {
   const { id } = useParams()
   const { addToCart } = useCart()
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist()
   const navigate = useNavigate()
 
   const [product, setProduct] = useState(null)
@@ -23,52 +44,114 @@ const ProductDetailPage = () => {
   const [expandedSpecs, setExpandedSpecs] = useState(false)
   const [pincode, setPincode] = useState("")
   const [deliveryInfo, setDeliveryInfo] = useState(null)
+  const [selectedColor, setSelectedColor] = useState("")
+  const [selectedSize, setSelectedSize] = useState("")
+  const [isInWishlistState, setIsInWishlistState] = useState(false)
+  const [showNotification, setShowNotification] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState("")
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true)
-        const productData = await fetchProductById(id)
-        setProduct(productData)
+    const fetchProductData = async () => {
+      if (id) {
+        try {
+          setLoading(true)
+          const response = await productService.getProduct(id)
+          const productData = response.data.data
+          setProduct(productData)
 
-        if (productData) {
-          const related = await fetchRelatedProducts(productData.category)
-          setRelatedProducts(related.filter((p) => p.id !== productData.id).slice(0, 6))
+          if (productData) {
+            // Set initial quantity
+            if (productData.stock > 0) {
+              setQuantity(1)
+            } else {
+              setQuantity(0)
+            }
+
+            // Get related products
+            try {
+              const relatedResponse = await productService.getProducts({ 
+                category: productData.category,
+                limit: 6
+              })
+              
+              // Filter out the current product and limit to 6 items
+              const relatedProducts = (relatedResponse.data.data || [])
+                .filter(p => p._id !== productData._id)
+                .slice(0, 6)
+                
+              setRelatedProducts(relatedProducts)
+            } catch (error) {
+              console.error("Error fetching related products:", error)
+            }
+
+            setIsInWishlistState(isInWishlist(productData.id))
+
+            // Set default color and size if available
+            if (productData.colors && productData.colors.length > 0) {
+              setSelectedColor(productData.colors[0])
+            }
+
+            if (productData.sizes && productData.sizes.length > 0) {
+              setSelectedSize(productData.sizes[0])
+            }
+          }
+          
+          setLoading(false)
+        } catch (error) {
+          console.error("Error fetching product:", error)
+          setError("Failed to load product. Please try again.")
+          setLoading(false)
         }
-      } catch (error) {
-        console.error("Error loading product details:", error)
-      } finally {
-        setLoading(false)
       }
     }
 
-    loadData()
-    // Reset state when product ID changes
-    setSelectedImage(0)
-    setQuantity(1)
-    setActiveTab("description")
-    setShowFullDescription(false)
-    setShowAllReviews(false)
-    setExpandedSpecs(false)
-    setPincode("")
-    setDeliveryInfo(null)
-
-    // Scroll to top when navigating between products
-    window.scrollTo(0, 0)
-  }, [id])
+    fetchProductData()
+  }, [id, isInWishlist])
 
   const handleAddToCart = () => {
     if (product) {
-      addToCart(product, quantity)
-      // Show a toast or notification here
+      const productToAdd = {
+        ...product,
+        quantity,
+        selectedColor,
+        selectedSize,
+      }
+      addToCart(productToAdd)
+      showNotificationMessage("Product added to cart successfully!")
     }
   }
 
   const handleBuyNow = () => {
     if (product) {
-      addToCart(product, quantity)
+      const productToAdd = {
+        ...product,
+        quantity,
+        selectedColor,
+        selectedSize,
+      }
+      addToCart(productToAdd)
       navigate("/checkout")
     }
+  }
+
+  const handleWishlistToggle = () => {
+    if (isInWishlistState) {
+      removeFromWishlist(product.id)
+      showNotificationMessage("Product removed from wishlist!")
+    } else {
+      addToWishlist(product)
+      showNotificationMessage("Product added to wishlist!")
+    }
+    setIsInWishlistState(!isInWishlistState)
+  }
+
+  const showNotificationMessage = (message) => {
+    setNotificationMessage(message)
+    setShowNotification(true)
+    setTimeout(() => {
+      setShowNotification(false)
+    }, 3000)
   }
 
   const incrementQuantity = () => {
@@ -132,15 +215,27 @@ const ProductDetailPage = () => {
 
   // Mock images array (in a real app, this would come from the product data)
   const images = [
-    image || "https://via.placeholder.com/400",
-    "https://via.placeholder.com/400?text=Image+2",
-    "https://via.placeholder.com/400?text=Image+3",
-    "https://via.placeholder.com/400?text=Image+4",
-    "https://via.placeholder.com/400?text=Image+5",
+    image || "https://placehold.co/400x400/ffffff/000000",
+    "https://placehold.co/400x400/ffffff/000000?text=Image+2",
+    "https://placehold.co/400x400/ffffff/000000?text=Image+3",
+    "https://placehold.co/400x400/ffffff/000000?text=Image+4",
+    "https://placehold.co/400x400/ffffff/000000?text=Image+5",
   ]
+
+  // Mock colors and sizes (in a real app, these would come from the product data)
+  const colors = product.colors || ["Black", "Blue", "White", "Red"]
+  const sizes = product.sizes || ["S", "M", "L", "XL", "XXL"]
 
   return (
     <div className="bg-gray-100 min-h-screen">
+      {/* Notification */}
+      {showNotification && (
+        <div className="fixed top-20 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50 shadow-md flex items-center">
+          <Check size={18} className="mr-2" />
+          <span>{notificationMessage}</span>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {/* Breadcrumbs */}
         <nav className="flex text-xs mb-4 text-gray-500">
@@ -192,8 +287,13 @@ const ProductDetailPage = () => {
                   />
 
                   {/* Wishlist button */}
-                  <button className="absolute top-2 right-2 bg-white rounded-full p-1.5 shadow-md text-gray-500 hover:text-[#2874f0]">
-                    <Heart size={20} />
+                  <button
+                    onClick={handleWishlistToggle}
+                    className={`absolute top-2 right-2 bg-white rounded-full p-1.5 shadow-md ${
+                      isInWishlistState ? "text-red-500" : "text-gray-500 hover:text-[#2874f0]"
+                    }`}
+                  >
+                    <Heart size={20} className={isInWishlistState ? "fill-current" : ""} />
                   </button>
                 </div>
               </div>
@@ -203,17 +303,17 @@ const ProductDetailPage = () => {
                 <button
                   onClick={handleAddToCart}
                   disabled={stock <= 0}
-                  className="bg-[#ff9f00] text-white py-3 px-4 rounded-sm font-medium flex items-center justify-center hover:bg-[#f39803] transition-colors"
+                  className="bg-[#ff9f00] text-white py-2 md:py-3 px-2 md:px-4 rounded-sm font-medium flex items-center justify-center hover:bg-[#f39803] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm"
                 >
-                  <ShoppingCart size={18} className="mr-2" />
+                  <ShoppingCart size={16} className="mr-1 md:mr-2" />
                   ADD TO CART
                 </button>
                 <button
                   onClick={handleBuyNow}
                   disabled={stock <= 0}
-                  className="bg-[#fb641b] text-white py-3 px-4 rounded-sm font-medium flex items-center justify-center hover:bg-orange-600 transition-colors"
+                  className="bg-[#fb641b] text-white py-2 md:py-3 px-2 md:px-4 rounded-sm font-medium flex items-center justify-center hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm"
                 >
-                  <Zap size={18} className="mr-2" />
+                  <Zap size={16} className="mr-1 md:mr-2" />
                   BUY NOW
                 </button>
               </div>
@@ -254,6 +354,79 @@ const ProductDetailPage = () => {
                 {discount > 0 && (
                   <p className="text-xs text-[#388e3c] mt-1">You Save: ₹{savings} (Inclusive of all taxes)</p>
                 )}
+              </div>
+
+              {/* Color Selection */}
+              {colors && colors.length > 0 && (
+                <div className="mb-4 pb-4 border-b border-gray-200">
+                  <h3 className="text-sm font-medium text-gray-800 mb-2">Color</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {colors.map((color, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedColor(color)}
+                        className={`border-2 rounded-full w-8 h-8 flex items-center justify-center ${
+                          selectedColor === color ? "border-[#2874f0]" : "border-gray-200"
+                        }`}
+                        style={{
+                          backgroundColor: color.toLowerCase(),
+                          color: ["white", "yellow", "light"].some((c) => color.toLowerCase().includes(c))
+                            ? "black"
+                            : "white",
+                        }}
+                        title={color}
+                      >
+                        {selectedColor === color && <Check size={16} />}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">Selected: {selectedColor}</p>
+                </div>
+              )}
+
+              {/* Size Selection */}
+              {sizes && sizes.length > 0 && (
+                <div className="mb-4 pb-4 border-b border-gray-200">
+                  <h3 className="text-sm font-medium text-gray-800 mb-2">Size</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {sizes.map((size, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedSize(size)}
+                        className={`border rounded-md w-12 h-10 flex items-center justify-center ${
+                          selectedSize === size
+                            ? "border-[#2874f0] bg-blue-50 text-[#2874f0]"
+                            : "border-gray-300 text-gray-700"
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">Selected: {selectedSize}</p>
+                </div>
+              )}
+
+              {/* Quantity Selection */}
+              <div className="mb-4 pb-4 border-b border-gray-200">
+                <h3 className="text-sm font-medium text-gray-800 mb-2">Quantity</h3>
+                <div className="flex items-center">
+                  <button
+                    onClick={decrementQuantity}
+                    disabled={quantity <= 1}
+                    className="border border-gray-300 rounded-l-md px-3 py-1 disabled:opacity-50"
+                  >
+                    -
+                  </button>
+                  <span className="border-t border-b border-gray-300 px-4 py-1">{quantity}</span>
+                  <button
+                    onClick={incrementQuantity}
+                    disabled={quantity >= stock}
+                    className="border border-gray-300 rounded-r-md px-3 py-1 disabled:opacity-50"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
 
               {/* Offers */}
@@ -312,13 +485,39 @@ const ProductDetailPage = () => {
                             <span className="line-through text-gray-500">₹40</span>
                           </span>
                         </div>
-                        {deliveryInfo.cod && <div className="mt-1 text-gray-600">Cash on Delivery available</div>}
+                        {deliveryInfo.cod && (
+                          <div className="mt-1 text-gray-600 flex items-center">
+                            <Package size={14} className="mr-1" />
+                            Cash on Delivery available
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="text-red-500">{deliveryInfo.message}</div>
                     )}
                   </div>
                 )}
+              </div>
+
+              {/* Services */}
+              <div className="mb-4 pb-4 border-b border-gray-200">
+                <h3 className="text-sm font-medium text-gray-800 mb-2">Services</h3>
+                <ul className="space-y-2">
+                  <li className="flex items-start">
+                    <RefreshCw size={16} className="text-[#388e3c] mt-0.5 mr-2 flex-shrink-0" />
+                    <div className="text-sm">
+                      <span className="font-medium">7 Days Replacement</span>
+                      <p className="text-gray-500 text-xs">Change of mind is not applicable</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start">
+                    <Shield size={16} className="text-[#388e3c] mt-0.5 mr-2 flex-shrink-0" />
+                    <div className="text-sm">
+                      <span className="font-medium">1 Year Warranty</span>
+                      <p className="text-gray-500 text-xs">Manufacturer warranty</p>
+                    </div>
+                  </li>
+                </ul>
               </div>
 
               {/* Highlights */}
@@ -508,25 +707,6 @@ const ProductDetailPage = () => {
 }
 
 // Missing icons
-const ShoppingCart = (props) => (
-  <svg
-    {...props}
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="8" cy="21" r="1" />
-    <circle cx="19" cy="21" r="1" />
-    <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-  </svg>
-)
-
 const Zap = (props) => (
   <svg
     {...props}

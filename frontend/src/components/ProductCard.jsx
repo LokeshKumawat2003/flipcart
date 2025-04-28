@@ -1,15 +1,19 @@
-
+"use client"
 
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useCart } from "../contexts/CartContext"
 import { useWishlist } from "../contexts/WishlistContext"
 import { Heart } from "lucide-react"
+import { useLocation } from "react-router-dom"
 
 const ProductCard = ({ product }) => {
   const { addToCart } = useCart()
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist()
   const [isInWishlistState, setIsInWishlistState] = useState(isInWishlist(product.id))
+  const location = useLocation()
+  const searchParams = new URLSearchParams(location.search)
+  const searchQuery = searchParams.get("search") || ""
 
   // Calculate discounted price if there's a discount
   const discountedPrice = product.discount ? product.price - (product.price * product.discount) / 100 : product.price
@@ -29,6 +33,20 @@ const ProductCard = ({ product }) => {
     setIsInWishlistState(!isInWishlistState)
   }
 
+  // Function to highlight search terms in text
+  const highlightSearchTerm = (text) => {
+    if (!searchQuery || !text) return text;
+    
+    // Split text on the search term with case-insensitive matching
+    const parts = text.split(new RegExp(`(${searchQuery})`, 'gi'));
+    
+    return parts.map((part, i) => 
+      part.toLowerCase() === searchQuery.toLowerCase() 
+        ? <mark key={i} className="bg-yellow-100 px-0.5">{part}</mark> 
+        : part
+    );
+  };
+
   return (
     <Link to={`/products/${product.id}`} className="group">
       <div className="bg-white rounded-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 relative">
@@ -40,7 +58,7 @@ const ProductCard = ({ product }) => {
 
         <div className="relative pt-[100%] overflow-hidden">
           <img
-            src={product.image || "https://via.placeholder.com/200"}
+            src={product.image || "https://placehold.co/200x200/ffffff/000000"}
             alt={product.name}
             className="absolute top-0 left-0 w-full h-full object-contain p-4"
           />
@@ -54,22 +72,24 @@ const ProductCard = ({ product }) => {
         <div className="p-3">
           {product.brand && <p className="text-xs text-gray-500 mb-1">{product.brand}</p>}
 
-          <h3 className="text-sm text-gray-800 font-medium line-clamp-2 h-10 mb-1">{product.name}</h3>
+          <h3 className="text-sm text-gray-800 font-medium line-clamp-2 h-10 mb-1">
+            {searchQuery ? highlightSearchTerm(product.name) : product.name}
+          </h3>
 
           <div className="flex items-center mb-1.5">
             <div className="flex items-center bg-[#388e3c] text-white text-xs px-1.5 py-0.5 rounded">
               <span>{product.rating}</span>
-              <Star size={10} className="ml-0.5 fill-current" />
+              <Star size={8} className="ml-0.5 fill-current" />
             </div>
             <span className="text-gray-500 text-xs ml-2">(210)</span>
           </div>
 
-          <div className="flex items-center">
-            <span className="text-gray-900 font-medium">₹{discountedPrice.toFixed(2)}</span>
+          <div className="flex flex-wrap items-center">
+            <span className="text-gray-900 font-medium text-sm md:text-base">₹{discountedPrice.toFixed(0)}</span>
             {product.discount > 0 && (
               <>
-                <span className="text-gray-500 text-xs line-through ml-2">₹{product.price.toFixed(2)}</span>
-                <span className="text-[#388e3c] text-xs font-medium ml-2">{product.discount}% off</span>
+                <span className="text-gray-500 text-xs line-through ml-1 md:ml-2">₹{product.price.toFixed(0)}</span>
+                <span className="text-[#388e3c] text-xs font-medium ml-1 md:ml-2">{product.discount}% off</span>
               </>
             )}
           </div>
@@ -93,8 +113,8 @@ const Star = (props) => (
   <svg
     {...props}
     xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
+    width="12"
+    height="12"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"

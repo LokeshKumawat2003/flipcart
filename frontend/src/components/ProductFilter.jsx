@@ -1,7 +1,7 @@
-
+"use client"
 
 import { useState, useEffect } from "react"
-import { ChevronDown, ChevronUp, Filter } from "lucide-react"
+import { ChevronDown, ChevronUp, Filter, Search, Star, X } from "lucide-react"
 
 const ProductFilter = ({ categories, brands, onFilterChange, initialFilters = {}, isMobile = false }) => {
   const [filters, setFilters] = useState({
@@ -9,6 +9,8 @@ const ProductFilter = ({ categories, brands, onFilterChange, initialFilters = {}
     brands: initialFilters.brands || [],
     priceRange: initialFilters.priceRange || [0, 100000],
     rating: initialFilters.rating || 0,
+    discount: initialFilters.discount || 0,
+    availability: initialFilters.availability || false,
     ...initialFilters,
   })
 
@@ -26,8 +28,68 @@ const ProductFilter = ({ categories, brands, onFilterChange, initialFilters = {}
     max: filters.priceRange[1],
   })
 
+  const [searchQuery, setSearchQuery] = useState("")
+  const [activeFilters, setActiveFilters] = useState([])
+
   useEffect(() => {
     onFilterChange(filters)
+
+    // Update active filters for display
+    const newActiveFilters = []
+
+    if (filters.categories.length > 0) {
+      filters.categories.forEach((cat) => {
+        newActiveFilters.push({
+          type: "category",
+          value: cat,
+          label: `Category: ${cat}`,
+        })
+      })
+    }
+
+    if (filters.brands.length > 0) {
+      filters.brands.forEach((brand) => {
+        newActiveFilters.push({
+          type: "brand",
+          value: brand,
+          label: `Brand: ${brand}`,
+        })
+      })
+    }
+
+    if (filters.priceRange[0] > 0 || filters.priceRange[1] < 100000) {
+      newActiveFilters.push({
+        type: "price",
+        value: filters.priceRange,
+        label: `Price: ₹${filters.priceRange[0]} - ₹${filters.priceRange[1]}`,
+      })
+    }
+
+    if (filters.rating > 0) {
+      newActiveFilters.push({
+        type: "rating",
+        value: filters.rating,
+        label: `Rating: ${filters.rating}★ & above`,
+      })
+    }
+
+    if (filters.discount > 0) {
+      newActiveFilters.push({
+        type: "discount",
+        value: filters.discount,
+        label: `Discount: ${filters.discount}% & above`,
+      })
+    }
+
+    if (filters.availability) {
+      newActiveFilters.push({
+        type: "availability",
+        value: true,
+        label: "In Stock Only",
+      })
+    }
+
+    setActiveFilters(newActiveFilters)
   }, [filters, onFilterChange])
 
   const toggleCategory = (category) => {
@@ -66,7 +128,15 @@ const ProductFilter = ({ categories, brands, onFilterChange, initialFilters = {}
   }
 
   const handleRatingChange = (rating) => {
-    setFilters((prev) => ({ ...prev, rating }))
+    setFilters((prev) => ({ ...prev, rating: prev.rating === rating ? 0 : rating }))
+  }
+
+  const handleDiscountChange = (discount) => {
+    setFilters((prev) => ({ ...prev, discount: prev.discount === discount ? 0 : discount }))
+  }
+
+  const toggleAvailability = () => {
+    setFilters((prev) => ({ ...prev, availability: !prev.availability }))
   }
 
   const clearFilters = () => {
@@ -75,13 +145,60 @@ const ProductFilter = ({ categories, brands, onFilterChange, initialFilters = {}
       brands: [],
       priceRange: [0, 100000],
       rating: 0,
+      discount: 0,
+      availability: false,
     })
     setPriceInput({ min: 0, max: 100000 })
+    setSearchQuery("")
+  }
+
+  const removeFilter = (type, value) => {
+    if (type === "category") {
+      setFilters((prev) => ({
+        ...prev,
+        categories: prev.categories.filter((c) => c !== value),
+      }))
+    } else if (type === "brand") {
+      setFilters((prev) => ({
+        ...prev,
+        brands: prev.brands.filter((b) => b !== value),
+      }))
+    } else if (type === "price") {
+      setFilters((prev) => ({
+        ...prev,
+        priceRange: [0, 100000],
+      }))
+      setPriceInput({ min: 0, max: 100000 })
+    } else if (type === "rating") {
+      setFilters((prev) => ({
+        ...prev,
+        rating: 0,
+      }))
+    } else if (type === "discount") {
+      setFilters((prev) => ({
+        ...prev,
+        discount: 0,
+      }))
+    } else if (type === "availability") {
+      setFilters((prev) => ({
+        ...prev,
+        availability: false,
+      }))
+    }
   }
 
   const toggleSection = (section) => {
     setExpanded((prev) => ({ ...prev, [section]: !prev[section] }))
   }
+
+  // Filter categories and brands based on search query
+  const filteredCategories = searchQuery
+    ? categories.filter((cat) => cat.toLowerCase().includes(searchQuery.toLowerCase()))
+    : categories
+
+  const filteredBrands = searchQuery
+    ? brands.filter((brand) => brand.toLowerCase().includes(searchQuery.toLowerCase()))
+    : brands
 
   return (
     <div className={`bg-white ${isMobile ? "p-4" : "rounded-sm shadow-sm p-4"}`}>
@@ -92,6 +209,47 @@ const ProductFilter = ({ categories, brands, onFilterChange, initialFilters = {}
         <button onClick={clearFilters} className="text-xs text-[#2874f0] hover:underline">
           CLEAR ALL
         </button>
+      </div>
+
+      {/* Active Filters */}
+      {activeFilters.length > 0 && (
+        <div className="mb-4">
+          <div className="flex flex-wrap gap-2">
+            {activeFilters.map((filter, index) => (
+              <div key={index} className="flex items-center bg-blue-50 text-[#2874f0] px-2 py-1 rounded-sm text-xs">
+                {filter.label}
+                <button
+                  onClick={() => removeFilter(filter.type, filter.value)}
+                  className="ml-1 text-[#2874f0] hover:text-blue-700"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Search Filter */}
+      <div className="mb-4">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search filters..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:border-[#2874f0]"
+          />
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-2.5 text-gray-400 hover:text-gray-600"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Categories */}
@@ -105,8 +263,8 @@ const ProductFilter = ({ categories, brands, onFilterChange, initialFilters = {}
         </div>
 
         {expanded.categories && (
-          <div className="space-y-2 ml-1">
-            {categories.map((category) => (
+          <div className="space-y-2 ml-1 max-h-60 overflow-y-auto">
+            {filteredCategories.map((category) => (
               <div key={category} className="flex items-center">
                 <input
                   type="checkbox"
@@ -120,6 +278,9 @@ const ProductFilter = ({ categories, brands, onFilterChange, initialFilters = {}
                 </label>
               </div>
             ))}
+            {filteredCategories.length === 0 && (
+              <p className="text-sm text-gray-500">No categories match your search</p>
+            )}
           </div>
         )}
       </div>
@@ -181,9 +342,40 @@ const ProductFilter = ({ categories, brands, onFilterChange, initialFilters = {}
         )}
       </div>
 
+      {/* Rating */}
+      <div className="mb-5 border-b pb-3">
+        <div className="flex justify-between items-center mb-3 cursor-pointer" onClick={() => toggleSection("rating")}>
+          <h4 className="text-sm font-medium text-gray-800">CUSTOMER RATINGS</h4>
+          {expanded.rating ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </div>
+
+        {expanded.rating && (
+          <div className="space-y-2 ml-1">
+            {[4, 3, 2, 1].map((rating) => (
+              <div key={rating} className="flex items-center">
+                <input
+                  type="checkbox"
+                  id={`rating-${rating}`}
+                  checked={filters.rating === rating}
+                  onChange={() => handleRatingChange(rating)}
+                  className="h-4 w-4 rounded border-gray-300 text-[#2874f0] focus:ring-[#2874f0]"
+                />
+                <label htmlFor={`rating-${rating}`} className="ml-2 text-sm text-gray-700 flex items-center">
+                  {rating}
+                  <Star size={12} className="ml-1 fill-current text-yellow-500" /> & above
+                </label>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Discount */}
       <div className="mb-5 border-b pb-3">
-        <div className="flex justify-between items-center mb-3 cursor-pointer" onClick={() => toggleSection("discount")}>
+        <div
+          className="flex justify-between items-center mb-3 cursor-pointer"
+          onClick={() => toggleSection("discount")}
+        >
           <h4 className="text-sm font-medium text-gray-800">DISCOUNT</h4>
           {expanded.discount ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </div>
@@ -195,6 +387,8 @@ const ProductFilter = ({ categories, brands, onFilterChange, initialFilters = {}
                 <input
                   type="checkbox"
                   id={`discount-${discount}`}
+                  checked={filters.discount === discount}
+                  onChange={() => handleDiscountChange(discount)}
                   className="h-4 w-4 rounded border-gray-300 text-[#2874f0] focus:ring-[#2874f0]"
                 />
                 <label htmlFor={`discount-${discount}`} className="ml-2 text-sm text-gray-700">
@@ -214,8 +408,8 @@ const ProductFilter = ({ categories, brands, onFilterChange, initialFilters = {}
         </div>
 
         {expanded.brands && (
-          <div className="space-y-2 ml-1">
-            {brands.map((brand) => (
+          <div className="space-y-2 ml-1 max-h-60 overflow-y-auto">
+            {filteredBrands.map((brand) => (
               <div key={brand} className="flex items-center">
                 <input
                   type="checkbox"
@@ -229,13 +423,17 @@ const ProductFilter = ({ categories, brands, onFilterChange, initialFilters = {}
                 </label>
               </div>
             ))}
+            {filteredBrands.length === 0 && <p className="text-sm text-gray-500">No brands match your search</p>}
           </div>
         )}
       </div>
 
       {/* Availability */}
       <div className="mb-5">
-        <div className="flex justify-between items-center mb-3 cursor-pointer" onClick={() => toggleSection("availability")}>
+        <div
+          className="flex justify-between items-center mb-3 cursor-pointer"
+          onClick={() => toggleSection("availability")}
+        >
           <h4 className="text-sm font-medium text-gray-800">AVAILABILITY</h4>
           {expanded.availability ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </div>
@@ -246,6 +444,8 @@ const ProductFilter = ({ categories, brands, onFilterChange, initialFilters = {}
               <input
                 type="checkbox"
                 id="availability-in-stock"
+                checked={filters.availability}
+                onChange={toggleAvailability}
                 className="h-4 w-4 rounded border-gray-300 text-[#2874f0] focus:ring-[#2874f0]"
               />
               <label htmlFor="availability-in-stock" className="ml-2 text-sm text-gray-700">

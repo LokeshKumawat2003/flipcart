@@ -1,4 +1,3 @@
-import React from "react"
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { AuthProvider } from "./contexts/AuthContext"
 import { CartProvider } from "./contexts/CartContext"
@@ -13,19 +12,29 @@ import CheckoutPage from "./pages/CheckoutPage"
 import LoginPage from "./pages/LoginPage"
 import RegisterPage from "./pages/RegisterPage"
 import WishlistPage from "./pages/WishlistPage"
+import OrderPage from "./pages/OrderPage"
 import AdminDashboard from "./pages/AdminDashboard"
 import ManagerDashboard from "./pages/ManagerDashboard"
 import ProtectedRoute from "./components/ProtectedRoute"
+import Sidebar from "./components/Sidebar"
 import "./App.css"
+import { useState } from "react"
 
 function App() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen)
+  }
+  
   return (
     <Router>
       <AuthProvider>
         <CartProvider>
           <WishlistProvider>
             <div className="flex flex-col min-h-screen">
-              <Navbar />
+              <Navbar onToggleSidebar={toggleSidebar} />
+              <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
               <main className="flex-grow">
                 <Routes>
                   <Route path="/" element={<HomePage />} />
@@ -35,6 +44,14 @@ function App() {
                   <Route path="/checkout" element={<CheckoutPage />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/register" element={<RegisterPage />} />
+                  <Route
+                    path="/orders"
+                    element={
+                      <ProtectedRoute>
+                        <OrderPage />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route
                     path="/wishlist"
                     element={
